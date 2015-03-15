@@ -5,6 +5,8 @@
 #include "opencv/highgui.h"
 #include "opencv2/imgproc/imgproc.hpp"
 
+#include "LandmarkTraining.h"
+
 #include <iostream>
 #include <stdio.h>
 

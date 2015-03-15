@@ -2,7 +2,15 @@
 #include <numeric>
 #include <stdexcept>
 #include <algorithm>
+
 #include "TrainingHelper.h"
+
+#include "opencv/cv.h"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
+#include "opencv2/imgproc/imgproc.hpp"
+
 
 #pragma once
 class LandmarkTraining
@@ -12,13 +20,17 @@ private:
 	std::string output_model_dir;
 	TrainingHelper::ConfigParameters config_setting;
 	std::vector<TrainingHelper::DataPoint> training_data;
+	std::vector<TrainingHelper::DataPoint> argumented_data;
 	std::vector<TrainingHelper::DataPoint> testing_data;
+	std::vector<std::vector<cv::Point2d> > initial_shape_data;
+	std::vector<std::vector<cv::Point2d> > normalized_targets;
+	std::vector<cv::Point2d> mean_shape;
 
-
+	void computeNormalizedTargets();
+	void createInitalShapes();
+	void createArgumentedData();
 	void readConfig();
-	void readTrainingData();
-	void readTestingData();
-
+	void readData(std::string sub_dir, std::vector<TrainingHelper::DataPoint> &result);
 
 public:
 	LandmarkTraining(const std::string &training_dir, const std::string &output_model_dir);
