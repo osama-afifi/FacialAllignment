@@ -36,7 +36,8 @@ vector<cv::Point2d> TrainingHelper::mapWindow(cv::Rect original_rect, const vect
 	return mappedPoints;
 }
 
-TrainingHelper::TransformMat TrainingHelper::procrustes(const vector<cv::Point2d> &x, const vector<cv::Point2d> &y)
+// Returns a Transform Matrix that turns one shape closest to another
+TrainingHelper::TransformMat TrainingHelper::procrustesAnalysis(const vector<cv::Point2d> &x, const vector<cv::Point2d> &y)
 {
 	assert(x.size() == y.size());
 	int landmark_count = x.size();
@@ -70,17 +71,84 @@ TrainingHelper::TransformMat TrainingHelper::procrustes(const vector<cv::Point2d
 	return trans_mat;
 }
 
-void TrainingHelper::TransformMat::apply(vector<cv::Point2d> &x, bool need_translation)
+void TrainingHelper::TransformMat::apply(vector<cv::Point2d> &shape, bool need_translation)
 {
-	for (cv::Point2d &p : x)
+	for(int i = 0 ; i < shape.size() ; i++)
 	{
-		cv::Matx21d v;
-		v(0) = p.x;
-		v(1) = p.y;
-		v = scale_rotation * v;
+		cv::Matx21d colVec;
+		colVec(0) = shape[i].x;
+		colVec(1) = shape[i].y;
+		colVec = scale_rotation * colVec;
 		if (need_translation)
-			v += translation;
-		p.x = v(0);
-		p.y = v(1);
+			colVec += translation;
+		shape[i].x = colVec(0);
+		shape[i].y = colVec(1);
 	}
+}
+
+std::vector<cv::Point2d> TrainingHelper::shapeAddition(const std::vector<cv::Point2d> &shape, const std::vector<cv::Point2d> &offset)
+{
+	assert(shape.size() == offset.size());
+	vector<cv::Point2d> sum_shape(shape.size());
+	for (int i = 0; i < shape.size(); ++i)
+		sum_shape[i] = shape[i] + offset[i];
+	return sum_shape;
+}
+
+
+std::vector<cv::Point2d> TrainingHelper::meanShape(std::vector<std::vector<cv::Point2d> > shapes, ConfigParameters &config_setting)
+{
+	// Iterations for averaging the shapes
+	const int kIterationCount = 10;
+	vector<cv::Point2d> mean_shape = shapes[0];
+	
+	for (int i = 0; i < kIterationCount; ++i)
+	{
+		for (vector<cv::Point2d> &shape: shapes)
+		{
+			TrainingHelper::TransformMat trans_mat = procrustesAnalysis(mean_shape, shape);
+			trans_mat.apply(shape);
+		}		
+		for (int j = 0; j < mean_shape.size(); ++j)
+			mean_shape[j].x = mean_shape[j].y = 0;		
+		for (const vector<cv::Point2d> & shape : shapes)
+			for (int j = 0; j < mean_shape.size(); ++j)
+			{
+				mean_shape[j].x += shape[j].x;
+				mean_shape[j].y += shape[j].y;
+			}
+		for (cv::Point2d & p : mean_shape)
+			p *= 1.0 / shapes.size();
+		normalizeShape(mean_shape, config_setting);
+	}
+	return mean_shape;
+}
+
+
+// subtracting the centroid on the eye distance scale rotated to be an alligned face
+void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHelper::ConfigParameters &config_setting)
+{
+
+	cv::Point2d center;
+	for (const cv::Point2d &p : shape)
+		center += p;
+	center *= 1.0 / shape.size();
+	for (cv::Point2d &p : shape)
+		p -= center;
+
+	cv::Point2d left_eye = shape.at(config_setting.left_eye_index);
+	cv::Point2d right_eye = shape.at(config_setting.right_eye_index);
+	double eyes_distance = cv::norm(left_eye - right_eye);
+	double scale = 1.0 / eyes_distance;
+
+	double theta = -atan((right_eye.y - left_eye.y) / (right_eye.x - left_eye.x));
+
+	// Must do translation first, and then rotation.
+	// Therefore, translation is done separately
+	TransformMat trans_mat;
+	trans_mat.scale_rotation(0, 0) = scale * cos(theta);
+	trans_mat.scale_rotation(0, 1) = -scale * sin(theta);
+	trans_mat.scale_rotation(1, 0) = scale * sin(theta);
+	trans_mat.scale_rotation(1, 1) = scale * cos(theta);
+	trans_mat.apply(shape, false);
 }

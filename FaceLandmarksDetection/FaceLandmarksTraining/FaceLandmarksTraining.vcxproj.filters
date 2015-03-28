@@ -24,12 +24,24 @@
     <ClCompile Include="LandmarkTraining.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RegressorTrainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FernTrainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TrainingHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LandmarkTraining.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RegressorTrainer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FernTrainer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

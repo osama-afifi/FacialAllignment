@@ -1,5 +1,6 @@
 
 #include "LandmarkTraining.h"
+#include "RegressorTrainer.h"
 #include <stdexcept>
 
 
@@ -23,20 +24,43 @@ void LandmarkTraining:: startTraining(void)
 	readData("/testing",testing_data); // 3. Read Testing Data
 	createInitalShapes(); // 4. Create Initial Shapes
 	createArgumentedData(); // 5. Argument Data
+	vector<vector<cv::Point2d> > landmarks;
+	for (const TrainingHelper::DataPoint &dp : training_data)
+		landmarks.push_back(dp.landmarks);
+	mean_shape = TrainingHelper::meanShape(landmarks, config_setting);
+
 	// 6. Start Cascaded Regression
+	vector<RegressorTrainer> stage_regressors(config_setting.high_lvl_count, RegressorTrainer(config_setting));
+	for (int i = 0; i < config_setting.high_lvl_count; ++i)
+	{
+		long long s = cv::getTickCount();
+
+		vector<vector<cv::Point2d> > normalized_targets = computeNormalizedTargets();
+		stage_regressors[i].regress(mean_shape, normalized_targets, argumented_data);
+		// incrementally add offsets to the current regressed shape
+		for (TrainingHelper::DataPoint &dp : argumented_data)
+		{
+			vector<cv::Point2d> offset = stage_regressors[i].apply(mean_shape, dp);
+			TrainingHelper::TransformMat trans_mat = TrainingHelper::procrustesAnalysis(dp.init_shape, mean_shape);
+			trans_mat.apply(offset, false);
+			dp.init_shape = TrainingHelper::shapeAddition(dp.init_shape, offset);
+		}
+	}
+
 
 }
 
-void LandmarkTraining::computeNormalizedTargets()
+vector<vector<cv::Point2d> > LandmarkTraining::computeNormalizedTargets()
 {
-	normalized_targets.clear();
-	for (const TrainingHelper::DataPoint& dp : argumented_data)
+	vector<vector<cv::Point2d> > norm_targets;
+	for (const TrainingHelper::DataPoint& data_point : argumented_data)
 	{
-		vector<cv::Point2d> error = TrainingHelper::shapeDifference(dp.landmarks, dp.init_shape);
-		TrainingHelper::TransformMat trans_mat = TrainingHelper::procrustes(mean_shape, dp.init_shape);
+		vector<cv::Point2d> error = TrainingHelper::shapeDifference(data_point.landmarks, data_point.init_shape);
+		TrainingHelper::TransformMat trans_mat = TrainingHelper::procrustesAnalysis(mean_shape, data_point.init_shape);
 		trans_mat.apply(error, false);
-		normalized_targets.push_back(error);
+		norm_targets.push_back(error);
 	}
+	return norm_targets;
 }
 
 void LandmarkTraining:: createArgumentedData()
@@ -101,7 +125,7 @@ void LandmarkTraining:: createInitalShapes()
 void LandmarkTraining:: readData(string sub_dir, std::vector<TrainingHelper::DataPoint> &result)
 {
 	result.clear();
-	std::ifstream fin((training_dir+ sub_dir+"/label.txt").c_str());
+	std::ifstream fin((training_dir + sub_dir + "/label.txt").c_str());
 	if (!fin.fail())
 	{
 		std::string line;

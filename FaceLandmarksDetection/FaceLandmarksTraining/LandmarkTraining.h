@@ -23,10 +23,9 @@ private:
 	std::vector<TrainingHelper::DataPoint> argumented_data;
 	std::vector<TrainingHelper::DataPoint> testing_data;
 	std::vector<std::vector<cv::Point2d> > initial_shape_data;
-	std::vector<std::vector<cv::Point2d> > normalized_targets;
 	std::vector<cv::Point2d> mean_shape;
 
-	void computeNormalizedTargets();
+	std::vector<std::vector<cv::Point2d> > computeNormalizedTargets();
 	void createInitalShapes();
 	void createArgumentedData();
 	void readConfig();
