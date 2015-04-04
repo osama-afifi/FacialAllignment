@@ -27,10 +27,10 @@ public:
 		int landmark_count;
 		int left_eye_index;
 		int right_eye_index;
-		int high_lvl_count;
-		int low_lvl_count;
+		int top_lvl_size;
+		int buttom_lvl_size;
 		int random_features_count;
-		//double Kappa;
+		double feature_random_dispersion;
 		int fern_depth;
 		int regular_coff;
 		int init_count;

@@ -27,16 +27,17 @@ void LandmarkTraining:: startTraining(void)
 	vector<vector<cv::Point2d> > landmarks;
 	for (const TrainingHelper::DataPoint &dp : training_data)
 		landmarks.push_back(dp.landmarks);
+	// 6. Calc Mean Shape
 	mean_shape = TrainingHelper::meanShape(landmarks, config_setting);
 
-	// 6. Start Cascaded Regression
-	vector<RegressorTrainer> stage_regressors(config_setting.high_lvl_count, RegressorTrainer(config_setting));
-	for (int i = 0; i < config_setting.high_lvl_count; ++i)
+	// 7. Start Cascaded Regression
+	vector<RegressorTrainer> stage_regressors(config_setting.top_lvl_size, RegressorTrainer(config_setting));
+	for (int i = 0; i < config_setting.top_lvl_size; ++i)
 	{
 		long long s = cv::getTickCount();
 
 		vector<vector<cv::Point2d> > normalized_targets = computeNormalizedTargets();
-		stage_regressors[i].regress(mean_shape, normalized_targets, argumented_data);
+		stage_regressors[i].regress(argumented_data, normalized_targets, mean_shape);
 		// incrementally add offsets to the current regressed shape
 		for (TrainingHelper::DataPoint &dp : argumented_data)
 		{
@@ -173,10 +174,10 @@ void LandmarkTraining:: readConfig(void)
 		config_setting.left_eye_index = std::stoi(items[1]);
 		config_setting.right_eye_index = std::stoi(items[2]);
 		config_setting.output_model_path = std::stoi(items[3]);
-		config_setting.high_lvl_count = std::stoi(items[4]);
-		config_setting.low_lvl_count = std::stoi(items[5]);
+		config_setting.top_lvl_size = std::stoi(items[4]);
+		config_setting.buttom_lvl_size = std::stoi(items[5]);
 		config_setting.random_features_count = std::stoi(items[6]);
-		//config_setting.koppa = std::stoi(items[7]);
+		config_setting.feature_random_dispersion = std::stoi(items[7]);
 		config_setting.fern_depth = std::stoi(items[8]);
 		config_setting.regular_coff = std::stoi(items[9]);
 		config_setting.init_count = std::stoi(items[10]);
