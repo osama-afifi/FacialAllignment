@@ -152,3 +152,18 @@ void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHe
 	trans_mat.scale_rotation(1, 1) = scale * cos(theta);
 	trans_mat.apply(shape, false);
 }
+
+
+	double TrainingHelper::Covariance(const vector<double> &x,const vector<double> &y)
+{
+	assert(x.size() && x.size()==y.size());
+	double a = 0, b = 0, c = 0, dsize = x.size();
+	for (int i = 0; i < x.size(); ++i)
+	{
+		a += x[i];
+		b += y[i];
+		c += x[i] * y[i];
+	}
+
+	return (c / dsize - (a / dsize) * (b / dsize));
+}

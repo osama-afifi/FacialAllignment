@@ -68,6 +68,7 @@ void RegressorTrainer::regress(const std::vector<TrainingHelper::DataPoint> &tra
 	//	}
 	//}
 	//CompressFerns();
+
 }
 std::vector<cv::Point2d> RegressorTrainer::apply(const std::vector<cv::Point2d> &mean_shape, const TrainingHelper::DataPoint &data) const
 {
