@@ -20,7 +20,8 @@ public:
 	static std::vector<cv::Point2d> mapWindow(cv::Rect original_rect, const std::vector<cv::Point2d> original_points, cv::Rect new_rect);
 	static TrainingHelper::TransformMat procrustesAnalysis(const std::vector<cv::Point2d> &x, const std::vector<cv::Point2d> &y);
 	static void normalizeShape(std::vector<cv::Point2d> &shape, const ConfigParameters &tp);
-	static double Covariance(const std::vector<double> &x,const std::vector<double> &y);
+	static double TrainingHelper::Covariance(const std::vector<double> &x,const std::vector<double> &y);
+	static double TrainingHelper::Covariance(const  cv::Mat x,const cv::Mat y);
 
 	struct ConfigParameters
 	{

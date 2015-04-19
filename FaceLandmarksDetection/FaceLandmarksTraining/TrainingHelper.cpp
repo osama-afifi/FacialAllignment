@@ -2,6 +2,7 @@
 #include "TrainingHelper.h"
 
 using namespace std;
+using namespace cv;
 
 TrainingHelper::TrainingHelper(void)
 {
@@ -163,6 +164,20 @@ void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHe
 		a += x[i];
 		b += y[i];
 		c += x[i] * y[i];
+	}
+
+	return (c / dsize - (a / dsize) * (b / dsize));
+}
+
+	double TrainingHelper::Covariance(const  Mat x,const Mat y)
+{
+	assert(x.rows && x.rows == y.rows);
+	double a = 0, b = 0, c = 0, dsize = x.rows;
+	for (int i = 0; i < x.rows ; ++i)
+	{
+		a += x.at<double>(i);
+		b += y.at<double>(i);
+		c += x.at<double>(i) * y.at<double>(i);
 	}
 
 	return (c / dsize - (a / dsize) * (b / dsize));

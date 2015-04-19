@@ -59,14 +59,14 @@ void RegressorTrainer::regress(const std::vector<TrainingHelper::DataPoint> &tra
 	cv::Mat pixels_cov, means;
 	cv::calcCovarMatrix(pixels_val, pixels_cov, means, cv::COVAR_NORMAL | cv::COVAR_SCALE | cv::COVAR_COLS);
 
-	//for (int i = 0; i < config_setting.buttom_lvl_size; ++i)
-	//{
-	//	ferns[i].regress(targets, pixels_val, pixels_cov);
-	//	for (int j = 0; j < targets.size(); ++j)
-	//	{
-	//		(*targets)[j] = TrainingHelper::shapeDifference((*targets)[j], ferns[i].apply(pixels_val(cv::Range::all(), cv::Range(j, j + 1))));
-	//	}
-	//}
+	for (int i = 0; i < config_setting.buttom_lvl_size; ++i)
+	{
+		ferns[i].regress(targets, pixels_val, pixels_cov);
+		for (int j = 0; j < targets.size(); ++j)
+		{
+			targets[j] = TrainingHelper::shapeDifference(targets[j], ferns[i].apply(pixels_val(cv::Range::all(), cv::Range(j, j + 1))));
+		}
+	}
 	//CompressFerns();
 
 }
