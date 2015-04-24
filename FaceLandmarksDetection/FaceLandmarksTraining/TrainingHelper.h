@@ -22,6 +22,7 @@ public:
 	static void normalizeShape(std::vector<cv::Point2d> &shape, const ConfigParameters &tp);
 	static double TrainingHelper::Covariance(const std::vector<double> &x,const std::vector<double> &y);
 	static double TrainingHelper::Covariance(const  cv::Mat x,const cv::Mat y);
+	static double TrainingHelper::Covariance(double *x, double *y, int vec_size);
 
 	struct ConfigParameters
 	{

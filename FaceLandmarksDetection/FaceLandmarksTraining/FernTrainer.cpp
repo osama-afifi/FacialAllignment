@@ -15,73 +15,76 @@ FernTrainer::~FernTrainer(void)
 }
 
 
-void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat pixels_cov)
+void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat pixels_covariance_matrix)
 {
-	// flatenning Y into 1 Channel
-	cv::Mat Y(targets.size(), targets[0].size() * 2, CV_64FC1);
-	for (int i = 0; i < Y.rows; ++i)
+	// Flatening Y into 1 Channel
+	cv::Mat targets_flat(targets.size(), targets[0].size() * 2, CV_64FC1);
+	for (int i = 0; i < targets_flat.rows; ++i)
 	{
-		for (int j = 0; j < Y.cols; j += 2)
+		for (int j = 0; j < targets_flat.cols; j += 2)
 		{
-			Y.at<double>(i, j) = targets[i][j / 2].x;
-			Y.at<double>(i, j + 1) = targets[i][j / 2].y;
+			targets_flat.at<double>(i, j) = targets[i][j / 2].x;
+			targets_flat.at<double>(i, j + 1) = targets[i][j / 2].y;
 		}
 	}
-	
+
+	// initializing feature index and threshold vector of the fern
 	features_index.assign(config_parameters.fern_depth, pair<int, int>());
 	thresholds.assign(config_parameters.fern_depth, 0);
 
 	for (int i = 0; i < config_parameters.fern_depth ; ++i)
 	{
-		// random gaussian projection values with mean 0 SD 1
-		cv::Mat projection(Y.cols, 1, CV_64FC1);
+		// Fill projection with random gaussian values of mean 0 and standard deviation of 1
+		cv::Mat projection(targets_flat.cols, 1, CV_64FC1);
 		cv::theRNG().fill(projection, cv::RNG::NORMAL, cv::Scalar(0), cv::Scalar(1));
-		//unique_ptr<double[]> Y_proj_data(new double[Y.rows + 3]);
-		//gogogogogogo
-		cv::Mat Y_proj(Y.rows, 1, CV_64FC1);
 
-		//project on targets
-		static_cast<cv::Mat>(Y * projection).copyTo(Y_proj);
+		// Projected Landmarks initialization
+		cv::Mat targets_projected(targets_flat.rows, 1, CV_64FC1);
 
-		double Y_proj_cov = TrainingHelper::Covariance(Y_proj,Y_proj);
-		vector<double> Y_pixels_cov(pixels_val.rows);
+		// Apply direction Projection on Landmarks Labels (Targets)
+		static_cast<cv::Mat>(targets_flat * projection).copyTo(targets_projected);
 
-		/////
-		// (O-v-O)
-		/////
+		// Calculating the projected Targets covariance 
+		double targets_projected_covariance = TrainingHelper::Covariance(targets_projected.ptr<double>(0),targets_projected.ptr<double>(0),targets_flat.rows);
+
+		// Calculating the Covariance between projected targets landmark and each feature landmark
+		vector<double> targets_pixels_covariance(pixels_val.rows);
 		for (int j = 0; j < pixels_val.rows; ++j)
-		{
-			Y_pixels_cov[j] = TrainingHelper::Covariance(Y_proj, pixels_val);
-		}
+			targets_pixels_covariance[j] = TrainingHelper::Covariance(targets_projected.ptr<double>(0), pixels_val.ptr<double>(j,0), targets_projected.rows);
 
-	//	double max_corr = -1;
-	//	for (int j = 0; j < pixels_val.rows; ++j)
-	//	{
-	//		for (int k = 0; k < pixels_val.rows; ++k)
-	//		{
-	//			double corr = (Y_pixels_cov[j] - Y_pixels_cov[k]) / sqrt(Y_proj_cov * (pixels_cov.at<double>(j, j) + pixels_cov.at<double>(k, k) 
-	//				- 2 * pixels_cov.at<double>(j, k)));
-	//			if (corr > max_corr)
-	//			{
-	//				max_corr = corr;
-	//				features_index[i].first = j;
-	//				features_index[i].second = k;
-	//			}
-	//		}
-	//	}
+		// calculate features (pixels) with the maximum correlation 
+			double max_correlation = -1;
 
-	//	double threshold_max = -1000000;
-	//	double threshold_min = 1000000;
-	//	for (int j = 0; j < pixels_val.cols; ++j)
-	//	{
-	//		double val = pixels_val.at<double>(features_index[i].first, j)
-	//			- pixels_val.at<double>(features_index[i].second, j);
-	//		threshold_max = max(threshold_max, val);
-	//		threshold_min = min(threshold_min, val);
-	//	}
-	//	thresholds[i] = (threshold_max + threshold_min) / 2 
-	//		+ cv::theRNG().uniform(-(threshold_max - threshold_min) * 0.1, 
-	//		(threshold_max - threshold_min) * 0.1);
+		// Remember pixel_val Matrix is (random features_count) x (training data size)
+			for (int j = 0; j < pixels_val.rows; ++j) 
+			{
+				for (int k = 0; k < pixels_val.rows; ++k)
+				{
+					// The Correlation between two features (pixels) [-1,+1]
+				double correlation = (targets_pixels_covariance[j] - targets_pixels_covariance[k]) /
+				 sqrt(targets_projected_covariance * (pixels_covariance_matrix.at<double>(j, j) + pixels_covariance_matrix.at<double>(k, k)
+				 - 2 * pixels_covariance_matrix.at<double>(j, k)));
+					if (correlation > max_correlation)
+					{
+						max_correlation = correlation;
+						features_index[i].first = j;
+						features_index[i].second = k;
+					}
+				}
+			}
+
+		//	double threshold_max = -1000000;
+		//	double threshold_min = 1000000;
+		//	for (int j = 0; j < pixels_val.cols; ++j)
+		//	{
+		//		double val = pixels_val.at<double>(features_index[i].first, j)
+		//			- pixels_val.at<double>(features_index[i].second, j);
+		//		threshold_max = max(threshold_max, val);
+		//		threshold_min = min(threshold_min, val);
+		//	}
+		//	thresholds[i] = (threshold_max + threshold_min) / 2 
+		//		+ cv::theRNG().uniform(-(threshold_max - threshold_min) * 0.1, 
+		//		(threshold_max - threshold_min) * 0.1);
 	}
 
 	//int outputs_count = 1 << config_parameters.fern_depth;

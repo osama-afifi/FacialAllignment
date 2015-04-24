@@ -1,3 +1,13 @@
+/*
+This is Owl get's mad when you write careless code, please look straight into her eyes while coding.
+_______
+|_____|
+(O-v-O)
+.{   }
+..( )
+..l^l
+*/
+
 
 
 #include "opencv2/objdetect/objdetect.hpp"
@@ -13,8 +23,10 @@
 using namespace std;
 using namespace cv;
 
+
+
 int main( int argc , char* argv[] )
 {
-  
-  return 0;
+
+	return 0;
 }

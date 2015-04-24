@@ -17,6 +17,7 @@ private:
 	std::vector<FernTrainer> ferns;
 	cv::Mat base;
 	const TrainingHelper::ConfigParameters &config_setting;
+
 	void CompressFerns();
 };
 

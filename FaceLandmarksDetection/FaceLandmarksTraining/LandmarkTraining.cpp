@@ -66,7 +66,7 @@ vector<vector<cv::Point2d> > LandmarkTraining::computeNormalizedTargets()
 
 void LandmarkTraining:: createArgumentedData()
 {
-	// You should provide training data with at least 2*ArgumentDataFactor images.
+	// You should provide training data with at least 2*Argument Data Factor images.
 	assert(training_data.size() >= 2 * config_setting.argument_factor);
 	argumented_data.clear();
 	argumented_data.resize(training_data.size() * config_setting.argument_factor);

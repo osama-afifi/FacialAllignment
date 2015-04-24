@@ -56,9 +56,9 @@ TrainingHelper::TransformMat TrainingHelper::procrustesAnalysis(const vector<cv:
 	}
 
 	cv::Matx44d A(X2, -Y2,  W,  0,
-				  Y2,  X2,  0,  W,
-				  Z,   0,  X2,  Y2,
-				  0,   Z, -Y2,  X2);
+		Y2,  X2,  0,  W,
+		Z,   0,  X2,  Y2,
+		0,   Z, -Y2,  X2);
 	cv::Matx41d b(X1, Y1, C1, C2);
 	cv::Matx41d solution = A.inv() * b;
 
@@ -102,7 +102,7 @@ std::vector<cv::Point2d> TrainingHelper::meanShape(std::vector<std::vector<cv::P
 	// Iterations for averaging the shapes
 	const int kIterationCount = 10;
 	vector<cv::Point2d> mean_shape = shapes[0];
-	
+
 	for (int i = 0; i < kIterationCount; ++i)
 	{
 		for (vector<cv::Point2d> &shape: shapes)
@@ -118,9 +118,9 @@ std::vector<cv::Point2d> TrainingHelper::meanShape(std::vector<std::vector<cv::P
 				mean_shape[j].x += shape[j].x;
 				mean_shape[j].y += shape[j].y;
 			}
-		for (cv::Point2d & p : mean_shape)
-			p *= 1.0 / shapes.size();
-		normalizeShape(mean_shape, config_setting);
+			for (cv::Point2d & p : mean_shape)
+				p *= 1.0 / shapes.size();
+			normalizeShape(mean_shape, config_setting);
 	}
 	return mean_shape;
 }
@@ -154,8 +154,14 @@ void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHe
 	trans_mat.apply(shape, false);
 }
 
+/*
+Covariance has now upper/lower bounds but we're interested it's direction while correleation defines a ranfe[-1,+1]
+Covariance = SUM((X-MEAN(X)*(Y-MEAN(Y))
+which can be simplified into
+SUM(MEAN(X*Y)) - MEAN(X) - MEAN(Y)
+*/
 
-	double TrainingHelper::Covariance(const vector<double> &x,const vector<double> &y)
+double TrainingHelper::Covariance(const vector<double> &x,const vector<double> &y)
 {
 	assert(x.size() && x.size()==y.size());
 	double a = 0, b = 0, c = 0, dsize = x.size();
@@ -165,11 +171,10 @@ void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHe
 		b += y[i];
 		c += x[i] * y[i];
 	}
-
 	return (c / dsize - (a / dsize) * (b / dsize));
 }
 
-	double TrainingHelper::Covariance(const  Mat x,const Mat y)
+double TrainingHelper::Covariance(const  Mat x,const Mat y)
 {
 	assert(x.rows && x.rows == y.rows);
 	double a = 0, b = 0, c = 0, dsize = x.rows;
@@ -180,5 +185,18 @@ void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHe
 		c += x.at<double>(i) * y.at<double>(i);
 	}
 
+	return (c / dsize - (a / dsize) * (b / dsize));
+}
+
+double TrainingHelper::Covariance(double *x, double *y, int vec_size)
+{
+	assert(vec_size>0);
+	double a = 0, b = 0, c = 0, dsize = vec_size;
+	for (int i = 0; i < vec_size ; ++i)
+	{
+		a += x[i];
+		b += y[i];
+		c += x[i] * y[i];
+	}
 	return (c / dsize - (a / dsize) * (b / dsize));
 }
