@@ -63,7 +63,8 @@ void RegressorTrainer::regress(const vector<TrainingHelper::DataPoint> &training
 	{
 		//regress the new offset
 		ferns[i].regress(targets, pixels_val, pixels_cov);
-		// TOCO
+		// iterate over thetraining set and calculate the shape difference between 
+		// the ground truth target shape and the regressd shape and hence update the new targets
 		for (int j = 0; j < targets.size(); ++j)
 			targets[j] = TrainingHelper::shapeDifference(targets[j], ferns[i].apply(pixels_val(cv::Range::all(), cv::Range(j, j + 1))));
 	}

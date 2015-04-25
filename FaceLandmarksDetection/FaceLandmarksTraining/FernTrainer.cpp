@@ -94,17 +94,17 @@ void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat
 
 	for (int i = 0; i < targets.size(); ++i)
 	{
-		int mask = 0;
+		int binary_mask = 0;
 		// Building the binary string (fern bucket index) for each training data point
 		for (int j = 0; j < config_parameters.fern_depth; ++j)
 		{
 			double p1 = pixels_val.at<double>(features_pair_vec[j].first, i);
 			double p2 = pixels_val.at<double>(features_pair_vec[j].second, i);
-			mask |= ((p1 - p2) > threshold_vec[j]) << j;
+			binary_mask |= ((p1 - p2) > threshold_vec[j]) << j;
 		}
 		// Incrementally add the shapes into the bucket
-		output_bucket[mask] = TrainingHelper::shapeAddition(output_bucket[mask], targets[i]);
-		++binary_string_freq[mask];
+		output_bucket[binary_mask] = TrainingHelper::shapeAddition(output_bucket[binary_mask], targets[i]);
+		++binary_string_freq[binary_mask];
 	}
 
 	// Averaging each bucket index according to it's number of shapes which map to it
@@ -114,7 +114,7 @@ void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat
 		{
 			// Averaging
 			point *= (1.0 / binary_string_freq[i]);
-			// Regularization by multiplying by (1/1+regular_coff/binary_freq[i]) 
+			// Regularization by multiplying by (1/(1+regular_coff/binary_freq[i])) 
 			point *= (1.0 / (1.0 + (config_parameters.regular_coff/binary_string_freq[i])));
 		}			
 	}
@@ -123,5 +123,12 @@ void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat
 
 vector<Point2d> FernTrainer::apply(Mat features)const
 {
-	return vector<Point2d>();
+	int binary_mask = 0;
+	for (int i = 0; i < config_parameters.fern_depth ; ++i)
+	{
+		double p1 = features.at<double>(features_pair_vec[i].first);
+		double p2 = features.at<double>(features_pair_vec[i].second);
+		binary_mask |= (p1 - p2 > threshold_vec[i]) << i;
+	}
+	return output_bucket[binary_mask];
 }
