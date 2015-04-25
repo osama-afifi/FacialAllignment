@@ -155,7 +155,7 @@ void TrainingHelper::normalizeShape(vector<cv::Point2d> &shape, const TrainingHe
 }
 
 /*
-Covariance has now upper/lower bounds but we're interested it's direction while correleation defines a ranfe[-1,+1]
+Covariance has now upper/lower bounds but we're interested it's direction while correleation defines a range[-1,+1]
 Covariance = SUM((X-MEAN(X)*(Y-MEAN(Y))
 which can be simplified into
 SUM(MEAN(X*Y)) - MEAN(X) - MEAN(Y)

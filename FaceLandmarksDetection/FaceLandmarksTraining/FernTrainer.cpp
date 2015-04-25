@@ -29,8 +29,8 @@ void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat
 	}
 
 	// initializing feature index and threshold vector of the fern
-	features_index.assign(config_parameters.fern_depth, pair<int, int>());
-	thresholds.assign(config_parameters.fern_depth, 0);
+	features_pair_vec.assign(config_parameters.fern_depth, pair<int, int>());
+	threshold_vec.assign(config_parameters.fern_depth, 0);
 
 	for (int i = 0; i < config_parameters.fern_depth ; ++i)
 	{
@@ -60,55 +60,64 @@ void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat
 			{
 				for (int k = 0; k < pixels_val.rows; ++k)
 				{
-					// The Correlation between two features (pixels) [-1,+1]
+					// The Correlation between two features after direction projection (pixels) [-1,+1]
+					// This is fast because our previous covariance computations
 				double correlation = (targets_pixels_covariance[j] - targets_pixels_covariance[k]) /
 				 sqrt(targets_projected_covariance * (pixels_covariance_matrix.at<double>(j, j) + pixels_covariance_matrix.at<double>(k, k)
-				 - 2 * pixels_covariance_matrix.at<double>(j, k)));
+				 - 2 * pixels_covariance_matrix.at<double>(j, k))
+				 );
 					if (correlation > max_correlation)
 					{
 						max_correlation = correlation;
-						features_index[i].first = j;
-						features_index[i].second = k;
+						features_pair_vec[i].first = j;
+						features_pair_vec[i].second = k;
 					}
 				}
 			}
 
-		//	double threshold_max = -1000000;
-		//	double threshold_min = 1000000;
-		//	for (int j = 0; j < pixels_val.cols; ++j)
-		//	{
-		//		double val = pixels_val.at<double>(features_index[i].first, j)
-		//			- pixels_val.at<double>(features_index[i].second, j);
-		//		threshold_max = max(threshold_max, val);
-		//		threshold_min = min(threshold_min, val);
-		//	}
-		//	thresholds[i] = (threshold_max + threshold_min) / 2 
-		//		+ cv::theRNG().uniform(-(threshold_max - threshold_min) * 0.1, 
-		//		(threshold_max - threshold_min) * 0.1);
+			double threshold_max = -1e9;
+			double threshold_min = +1e9;
+			for (int j = 0; j < pixels_val.cols; ++j)
+			{
+				double val = pixels_val.at<double>(features_pair_vec[i].first, j) - pixels_val.at<double>(features_pair_vec[i].second, j);
+				threshold_max = max(threshold_max, val);
+				threshold_min = min(threshold_min, val);
+			}
+			// The Middle of the Range as Threshold with some random noise
+			threshold_vec[i] = (threshold_max + threshold_min) / 2 
+			+ theRNG().uniform(-(threshold_max - threshold_min) * 0.1, (threshold_max - threshold_min) * 0.1);
 	}
 
-	//int outputs_count = 1 << config_parameters.fern_depth;
-	//outputs.assign(outputs_count, vector<cv::Point2d>((*targets)[0].size()));
-	//vector<int> each_output_count(outputs_count);
+	int outputs_count = 1 << config_parameters.fern_depth;
+	output_bucket.assign(outputs_count, vector<cv::Point2d>(targets[0].size()));
+	vector<int> binary_string_freq(outputs_count,0);
 
-	//for (int i = 0; i < targets.size(); ++i)
-	//{
-	//	int mask = 0;
-	//	for (int j = 0; j < config_parameters.fern_depth; ++j)
-	//	{
-	//		double p1 = pixels_val.at<double>(features_index[j].first, i);
-	//		double p2 = pixels_val.at<double>(features_index[j].second, i);
-	//		mask |= (p1 - p2 > thresholds[j]) << j;
-	//	}
-	//	outputs[mask] = ShapeAdjustment(outputs[mask], (*targets)[i]);
-	//	++each_output_count[mask];
-	//}
+	for (int i = 0; i < targets.size(); ++i)
+	{
+		int mask = 0;
+		// Building the binary string (fern bucket index) for each training data point
+		for (int j = 0; j < config_parameters.fern_depth; ++j)
+		{
+			double p1 = pixels_val.at<double>(features_pair_vec[j].first, i);
+			double p2 = pixels_val.at<double>(features_pair_vec[j].second, i);
+			mask |= ((p1 - p2) > threshold_vec[j]) << j;
+		}
+		// Incrementally add the shapes into the bucket
+		output_bucket[mask] = TrainingHelper::shapeAddition(output_bucket[mask], targets[i]);
+		++binary_string_freq[mask];
+	}
 
-	//for (int i = 0; i < outputs_count; ++i)
-	//{
-	//	for (cv::Point2d &p : outputs[i])
-	//		p *= 1.0 / (each_output_count[i] + training_parameters.Beta);
-	//}
+	// Averaging each bucket index according to it's number of shapes which map to it
+	for (int i = 0; i < outputs_count; ++i)
+	{
+		for (cv::Point2d &point : output_bucket[i])
+		{
+			// Averaging
+			point *= (1.0 / binary_string_freq[i]);
+			// Regularization by multiplying by (1/1+regular_coff/binary_freq[i]) 
+			point *= (1.0 / (1.0 + (config_parameters.regular_coff/binary_string_freq[i])));
+		}			
+	}
 }
 
 

@@ -44,7 +44,7 @@ void RegressorTrainer::regress(const vector<TrainingHelper::DataPoint> &training
 		for (int j = 0; j < config_setting.random_features_count ; ++j)
 		{
 			// calculate new pixel position after adding noise offset
-			cv::Point pixel_pos = training_data[i].init_shape[pixels[j].first] 	+ offsets[j];
+			Point pixel_pos = training_data[i].init_shape[pixels[j].first] 	+ offsets[j];
 			if (pixel_pos.inside(cv::Rect(0, 0, training_data[i].image.cols, training_data[i].image.rows)))
 				pixels_val.at<double>(j, i) = training_data[i].image.at<uchar>(pixel_pos);
 			else
@@ -55,7 +55,7 @@ void RegressorTrainer::regress(const vector<TrainingHelper::DataPoint> &training
 		}
 	}
 
-	cv::Mat pixels_cov, means;
+	Mat pixels_cov, means;
 	cv::calcCovarMatrix(pixels_val, pixels_cov, means, cv::COVAR_NORMAL | cv::COVAR_SCALE | cv::COVAR_COLS /* to use columns a input vectors*/);
 	// pixels_cov is a (random_features_count x random_features_count) matrix 
 	// means is column vector with the size of the train data
