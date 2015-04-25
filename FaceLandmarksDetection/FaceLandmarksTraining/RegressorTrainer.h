@@ -13,7 +13,7 @@ public:
 	std::vector<cv::Point2d> apply(const std::vector<cv::Point2d> &mean_shape, const TrainingHelper::DataPoint &data) const;
 
 private:
-	std::vector<std::pair<int, cv::Point2d> > pixels;
+	std::vector<std::pair<int, cv::Point2d> > selected_pixels; // <landmark_index, <x,y> >
 	std::vector<FernTrainer> ferns;
 	cv::Mat base;
 	const TrainingHelper::ConfigParameters &config_setting;

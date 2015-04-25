@@ -9,11 +9,9 @@ FernTrainer::FernTrainer(void)
 {
 }
 
-
 FernTrainer::~FernTrainer(void)
 {
 }
-
 
 void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat pixels_covariance_matrix)
 {
@@ -119,7 +117,6 @@ void FernTrainer::regress(vector<vector<Point2d> > &targets, Mat pixels_val, Mat
 		}			
 	}
 }
-
 
 vector<Point2d> FernTrainer::apply(Mat features)const
 {

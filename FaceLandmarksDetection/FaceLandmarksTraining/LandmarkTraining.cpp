@@ -5,6 +5,7 @@
 
 
 using namespace std;
+using namespace cv;
 
 LandmarkTraining::LandmarkTraining(const string &training_dir, const string &output_model_dir)
 	: training_dir(training_dir) , output_model_dir(output_model_dir)
@@ -28,23 +29,26 @@ void LandmarkTraining:: startTraining(void)
 	for (const TrainingHelper::DataPoint &dp : training_data)
 		landmarks.push_back(dp.landmarks);
 	// 6. Calc Mean Shape
-	mean_shape = TrainingHelper::meanShape(landmarks, config_setting);
+	mean_shape = TrainingHelper::calcMeanShape(landmarks, config_setting);
 
 	// 7. Start Cascaded Regression
 	vector<RegressorTrainer> stage_regressors(config_setting.top_lvl_size, RegressorTrainer(config_setting));
 	for (int i = 0; i < config_setting.top_lvl_size; ++i)
 	{
 		long long s = cv::getTickCount();
+		// Normalize the target offsets for better generalization
+		vector<vector<Point2d> > normalized_targets = computeNormalizedTargets();
 
-		vector<vector<cv::Point2d> > normalized_targets = computeNormalizedTargets();
+		// Regress the offsets using random ferns where each regressing level has its own selected features sample (pixels)
 		stage_regressors[i].regress(argumented_data, normalized_targets, mean_shape);
-		// incrementally add offsets to the current regressed shape
-		for (TrainingHelper::DataPoint &dp : argumented_data)
+
+		// Incrementally add regressed offsets to the current regressed shape after using procrustes analysis transform
+		for (TrainingHelper::DataPoint &data_point : argumented_data)
 		{
-			vector<cv::Point2d> offset = stage_regressors[i].apply(mean_shape, dp);
-			TrainingHelper::TransformMat trans_mat = TrainingHelper::procrustesAnalysis(dp.init_shape, mean_shape);
+			vector<cv::Point2d> offset = stage_regressors[i].apply(mean_shape, data_point);
+			TrainingHelper::TransformMat trans_mat = TrainingHelper::procrustesAnalysis(data_point.init_shape, mean_shape);
 			trans_mat.apply(offset, false);
-			dp.init_shape = TrainingHelper::shapeAddition(dp.init_shape, offset);
+			data_point.init_shape = TrainingHelper::shapeAddition(data_point.init_shape, offset);
 		}
 	}
 

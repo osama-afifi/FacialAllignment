@@ -16,6 +16,7 @@
 class LandmarkTraining
 {
 private:
+
 	std::string training_dir;
 	std::string output_model_dir;
 	TrainingHelper::ConfigParameters config_setting;
@@ -32,6 +33,7 @@ private:
 	void readData(std::string sub_dir, std::vector<TrainingHelper::DataPoint> &result);
 
 public:
+
 	LandmarkTraining(const std::string &training_dir, const std::string &output_model_dir);
 	~LandmarkTraining(void);
 
